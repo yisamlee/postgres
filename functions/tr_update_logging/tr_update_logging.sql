@@ -1,8 +1,6 @@
-
-
 CREATE OR REPLACE FUNCTION api.tr_update_logging()
-RETURNS trigger
-LANGUAGE plpgsql
+ RETURNS trigger
+ LANGUAGE plpgsql
 AS $function$
 DECLARE
     old_json jsonb;
@@ -25,13 +23,13 @@ BEGIN
         -- Compare old and new values for the column
         IF new_json -> column_name IS DISTINCT FROM old_json -> column_name THEN
             -- Add the changed column and its new value to 'changes'
-            old_values := jsonb_set(changes, ARRAY[column_name], old_json -> column_name, true);
-            new_values := jsonb_set(changes, ARRAY[column_name], new_json -> column_name, true);
+            old_values := jsonb_set(old_values, ARRAY[column_name], old_json -> column_name, true);
+            new_values := jsonb_set(new_values, ARRAY[column_name], new_json -> column_name, true);
         END IF;
     END LOOP;
    	
-   	changes := jsonb_set(changes,'{updated_by}',to_jsonb(now()),true);
-   	changes := jsonb_set(changes,'{updated_on}',to_jsonb(current_user),true);
+   	changes := jsonb_set(changes,'{updated_on}',to_jsonb(now()),true);
+   	changes := jsonb_set(changes,'{updated_by}',to_jsonb(current_user),true);
    	if new_values = '{}'::jsonb and current_user = 'postgres' then 
    		changes := jsonb_set(changes,'{new}',to_jsonb('clear log'::text),true);
    	elsif new_values = '{}'::jsonb and current_user != 'postgres' then
@@ -56,10 +54,8 @@ BEGIN
 
     RETURN NEW;
 END;
-$function$;
-
-
-
+$function$
+;
 drop trigger if exists masterdata_hk_building_log on masterdata_hk.building;
 create trigger __your_trigger_name__ before
 insert
@@ -67,4 +63,5 @@ insert
 update
     on
     __your_table__ for each row execute function api.tr_update_logging()
+
 
